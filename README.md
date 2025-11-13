@@ -1,7 +1,7 @@
 # Data Engineering Docker Stack
 
 A fully containerized **Data Engineering Platform** built with Docker Compose.  
-It includes a complete analytics pipeline — ingestion, orchestration, storage, visualization, and a Python (Flask) microservices layer for data access and dashboards.
+It includes a complete analytics pipeline — ingestion, orchestration, storage, visualization, and a python app and flask firmwork microservices layer for data access and dashboards.
 
     +---------------------+         +-----------------------+
     |    API Gateway      | <-----> |   Flask Microservices  |
