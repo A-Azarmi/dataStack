@@ -61,9 +61,9 @@ Repository:
 │   └── Dockerfile
 └── spark-app
 
+```
+## Tests
 
-
-	http://localhost:9002
 CDC (PostgreSQL → Debezium → Kafka)
 Connector config
 
@@ -73,6 +73,7 @@ connectors/debezium-northwind.json
 
 Check connector status
 curl -s http://localhost:8083/connectors | jq
+
 curl -s http://localhost:8083/connectors/northwind-cdc-connector/status | jq
 
 
