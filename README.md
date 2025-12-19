@@ -309,26 +309,4 @@ Example build/push (maintainer):
 docker build -t amirazarmi/data-stack:spark-3.5.3 -f spark/Dockerfile .
 docker push amirazarmi/data-stack:spark-3.5.3
 
-Next Steps (Planned)
 
-Add Spark jobs for orders and order_details with advanced business rules:
-
-inventory checks
-
-discount limits
-
-temporal rules (order/shipped dates)
-
-cross-table validations
-
-Add Airflow DAGs for running Spark jobs + data quality checks
-
-Add Grafana dashboards for:
-
-connector health
-
-Kafka lag
-
-Spark micro-batch metrics
-
-ClickHouse ingestion rate
