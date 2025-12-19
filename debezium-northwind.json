@@ -1,0 +1,31 @@
+{
+  "name": "northwind-cdc-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "replication_user",
+    "database.password": "password",
+    "database.dbname": "northwind",
+
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_northwind",
+    "slot.drop.on.stop": "false",
+
+    "publication.name": "dbz_publication",
+    "publication.autocreate.mode": "disabled",
+
+    "schema.include.list": "public",
+    "table.include.list": "public.orders,public.order_details,public.customers,public.employees,public.products,public.suppliers,public.categories",
+
+    "topic.prefix": "northwind",
+    "tasks.max": "1",
+    "snapshot.mode": "initial",
+    "tombstones.on.delete": "false",
+
+    "consumer.session.timeout.ms": "45000",
+    "consumer.heartbeat.interval.ms": "15000",
+    "consumer.max.poll.interval.ms": "300000"
+  }
+}

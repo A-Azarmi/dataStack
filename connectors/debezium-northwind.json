@@ -1,0 +1,28 @@
+{
+  "name": "northwind-cdc-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "app_user",
+    "database.password": "app_password",
+    "database.dbname": "northwind",
+    "plugin.name": "pgoutput",
+
+    "topic.prefix": "northwind",
+    "schema.include.list": "public",
+    "table.include.list": "public.customers,public.orders,public.order_details,public.products,public.employees,public.suppliers,public.categories",
+
+    "slot.name": "debezium_northwind",
+    "publication.name": "dbz_publication",
+    "publication.autocreate.mode": "filtered",
+
+    "snapshot.mode": "initial",
+    "tombstones.on.delete": "false",
+
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false"
+  }
+}

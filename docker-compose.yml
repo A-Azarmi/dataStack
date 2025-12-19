@@ -1,0 +1,276 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: northwind
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: app_password
+    ports:
+      - "5432:5432"
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+      - "-c"
+      - "max_replication_slots=10"
+      - "-c"
+      - "max_wal_senders=10"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - data-platform
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    networks:
+      - data-platform
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+      KAFKA_GROUP_MAX_SESSION_TIMEOUT_MS: "600000"
+      KAFKA_GROUP_MIN_SESSION_TIMEOUT_MS: "10000"
+
+    ports:
+      - "29092:29092"
+
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - data-platform
+
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
+
+
+  kafka_connect:
+    image: debezium/connect:2.7.3.Final
+    container_name: kafka_connect
+    restart: unless-stopped
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: "debezium-connect-group"
+      CONFIG_STORAGE_TOPIC: connect_config
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_status
+      CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_SESSION_TIMEOUT_MS: "600000"          
+      CONNECT_HEARTBEAT_INTERVAL_MS: "20000"        
+      CONNECT_REQUEST_TIMEOUT_MS: "120000"           
+      CONNECT_REBALANCE_TIMEOUT_MS: "300000"        
+      CONNECT_CONSUMER_MAX_POLL_INTERVAL_MS: "600000"
+    ports:
+      - "8083:8083"   
+    networks:
+      - data-platform
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8
+    container_name: clickhouse
+    restart: unless-stopped
+    ports:
+      - "8123:8123"   
+      - "9000:9000"   
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse/init:/docker-entrypoint-initdb.d
+    networks:
+      - data-platform
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123456
+    command: server /data --console-address ":9001"
+    ports:
+      - "9002:9000"   
+      - "9001:9001"   
+    volumes:
+      - minio_data:/data
+    networks:
+      - data-platform
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - clickhouse
+    networks:
+      - data-platform
+
+  spark:
+    build:
+      context: .
+      dockerfile: ./spark/Dockerfile
+    image: spark-with-clickhouse-driver:3.5.3
+    container_name: spark
+    restart: unless-stopped
+    depends_on:
+      - kafka
+      - clickhouse
+    working_dir: /opt/spark-app
+
+    user: "0:0"
+
+    environment:
+      SPARK_HOME: /opt/spark
+      PATH: /opt/spark/bin:/opt/spark/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+      HOME: /tmp
+      SPARK_JARS_IVY: /tmp/.ivy2
+      SPARK_SUBMIT_OPTS: >-
+        -Divy.home=/tmp/.ivy2
+        -Divy.cache.dir=/tmp/.ivy2/cache
+
+    command: >
+      bash -lc "
+        mkdir -p /tmp/.ivy2/cache /tmp/.ivy2/jars &&
+        chmod -R 777 /tmp/.ivy2 &&
+        tail -f /dev/null
+      "
+
+    volumes:
+      - ./spark/app:/opt/spark-app
+      - spark_ivy_cache:/tmp/.ivy2
+
+    networks:
+      - data-platform
+
+
+  airflow:
+    image: apache/airflow:2.9.1
+    container_name: airflow
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - clickhouse
+      - kafka
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: "a_very_secret_fernet_key_32_chars"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+    command: >
+      bash -c "
+        airflow db upgrade &&
+        airflow users create
+          --username admin
+          --password admin
+          --firstname Admin
+          --lastname User
+          --role Admin
+          --email admin@example.com || true &&
+        airflow standalone
+      "
+    ports:
+      - "8080:8080"
+    networks:
+      - data-platform
+
+  connect-init:
+    image: curlimages/curl:8.7.1
+    container_name: connect-init
+    restart: unless-stopped
+    depends_on:
+      - kafka_connect
+    entrypoint: >
+      sh -c "
+        set -e;
+
+        echo '[connect-init] Waiting for Kafka Connect REST...';
+        until curl -sf http://kafka_connect:8083/ >/dev/null; do
+          sleep 3;
+        done;
+
+        echo '[connect-init] Checking connector...';
+        if curl -sf http://kafka_connect:8083/connectors/northwind-cdc-connector >/dev/null; then
+          echo '[connect-init] Connector already exists. Skipping.';
+        else
+          echo '[connect-init] Creating connector...';
+          curl -sf -X POST http://kafka_connect:8083/connectors \
+            -H 'Content-Type: application/json' \
+            -d @/config/debezium-northwind.json;
+          echo '[connect-init] Created.';
+        fi;
+
+        sleep infinity
+      "
+    volumes:
+      - ./connectors:/config:ro
+    networks:
+      - data-platform
+
+networks:
+  data-platform:
+    driver: bridge
+
+volumes:
+  pg_data:
+  clickhouse_data:
+  minio_data:
+  grafana_data:
+  kafka_data:
+  zookeeper_data:
+  zookeeper_log:
+  spark_ivy_cache:
