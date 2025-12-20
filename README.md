@@ -1,7 +1,12 @@
 # Data Engineering Docker Stack
 
 A fully containerized **Data Engineering Platform** built with Docker Compose.  
-It provides an end-to-end analytics/streaming pipeline: ingestion (CDC), messaging, processing (ETL), data warehousing, orchestration, and monitoring.
+
+### It provides an end-to-end analytics/streaming pipeline:
+- ingestion (CDC), messaging, processing (ETL)
+- data warehousing
+- orchestration
+- monitoring
 
 Repository:
 - GitHub: https://github.com/A-Azarmi/dataStack
