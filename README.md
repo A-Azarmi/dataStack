@@ -1,4 +1,9 @@
-This project was designed to implement a real-time data pipeline for streaming data from a transactional PostgreSQL database to an analytical data warehouse in ClickHouse. Due to time constraints and a focus on proof of concept, the implementation scope was narrowed to a sample use case on the Customer table, covering only Insert and Update operations with a few basic business validation rules. It should be noted that the original problem statement required coverage of all base and related tables in the Northwind database, with real-time reflection of all changes—including inserts, deletions, updates, as well as structural schema changes. The architectural approach and framework implemented—including CDC via Debezium, event streaming via Kafka, stream processing with Spark, and loading into ClickHouse—has been fully designed and tested, and is fully extensible to cover all required tables and scenarios. Given adequate time, this prototype can be developed into a comprehensive, production-ready solution.
+This project was designed to implement a real-time data pipeline for streaming data from a transactional PostgreSQL database to an analytical data warehouse in ClickHouse. 
+Due to time constraints and a focus on proof of concept, the implementation scope was narrowed to a sample use case on the Customer table, covering only Insert and Update operations with a few basic business validation rules. 
+
+It should be noted that the original problem statement required coverage of all base and related tables in the Northwind database, with real-time reflection of all changes—including inserts, deletions, updates, as well as structural schema changes.
+
+The architectural approach and framework implemented—including CDC via Debezium, event streaming via Kafka, stream processing with Spark, and loading into ClickHouse—has been fully designed and tested, and is fully extensible to cover all required tables and scenarios. Given adequate time, this prototype can be developed into a comprehensive, production-ready solution.
 
 ******************************************************************************************
 # Data Engineering Docker Stack
