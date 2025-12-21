@@ -123,15 +123,6 @@ For every micro-batch read from Kafka topic northwind.public.customers:
 
 # Test Plan (Executable Scenarios)
 
-These tests are designed to be copy/paste runnable and produce clear PASS/FAIL outputs.
-
-```text
-docker compose exec clickhouse clickhouse-client -q \
-"ALTER TABLE northwind_dw.dim_customers ADD COLUMN IF NOT EXISTS op String;"
-
-docker compose exec clickhouse clickhouse-client -q \
-"ALTER TABLE northwind_dw.dim_customers ADD COLUMN IF NOT EXISTS src_ts DateTime;"
-```
 
 ## Reset table for clean testing:
 
@@ -220,19 +211,4 @@ curl -s http://localhost:8083/connectors/northwind-cdc-connector/status | jq
 ```
 
 
-## Add columns:
-
-```text
-docker compose exec clickhouse clickhouse-client -q \
-"ALTER TABLE northwind_dw.dim_customers ADD COLUMN IF NOT EXISTS op String;"
-docker compose exec clickhouse clickhouse-client -q \
-"ALTER TABLE northwind_dw.dim_customers ADD COLUMN IF NOT EXISTS src_ts DateTime;"
-```
-
-## Reset Spark checkpoint:
-
-```text
-docker compose exec spark bash -lc "rm -rf /tmp/spark-checkpoints/dim_customers || true"
-
-```
 
