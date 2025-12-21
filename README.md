@@ -12,7 +12,6 @@ Repository:
 - GitHub: https://github.com/A-Azarmi/dataStack
 - Docker Hub: https://hub.docker.com/r/amirazarmi/data-stack
 ---
-
 ## Stack Overview
 
 | Layer | Component | Description |
